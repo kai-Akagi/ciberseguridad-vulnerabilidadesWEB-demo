@@ -45,18 +45,3 @@ Demostración de una vulnerabilidad XSS basada en la inserción de contenido con
 
 ---
 
-## Estructura del repositorio
-
-```text
-vulnerabilidades-web/
-│
-├── corregido/
-│   ├── xss.html
-│   └── broken-access-control.html
-│
-├── vulnerable/
-│   ├── xss.html
-│   └── broken-access-control.html
-│
-├── index.html
-└── README.md
