@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<meta
+http-equiv="Content-Security-Policy"
+content="script-src 'self';">
+<body>
+
+<h2>Libro de visitas</h2>
+
+<input id="mensaje">
+<button onclick="publicar()">Publicar</button>
+
+<hr>
+
+<div id="comentarios"></div>
+
+<script>
+
+function publicar() {
+
+    const mensaje =
+        document.getElementById("mensaje").value;
+
+    document.getElementById("comentarios").textContent =
+        mensaje;
+}
+
+</script>
+
+</body>
+</html>
