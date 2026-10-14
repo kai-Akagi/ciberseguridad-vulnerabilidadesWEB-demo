@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Índice interactivo del laboratorio de Ciberseguridad Aplicada: Exposición y mitigación de vulnerabilidades críticas web (Broken Access Control, XSS, SSRF).">
+  <title>Ciberseguridad aplicada | Índice de Laboratorio</title>
+  <style>
+    /* ==========================================================================
+       VARIABLES Y DISEÑO BASE (ESTILO TECH SOBRIO)
+       ========================================================================== */
+    :root {
+      --bg-dark: #070a12;
+      --bg-surface: #0f172a;
+      --bg-card: #162032;
+      --bg-card-hover: #1e2d42;
+      
+      --border-subtle: #1e293b;
+      --border-strong: #334155;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --accent-cyan: #06b6d4;
+      --accent-cyan-glow: rgba(6, 182, 212, 0.15);
+      --accent-blue: #3b82f6;
+      
+      --badge-vulnerable-bg: rgba(239, 68, 68, 0.12);
+      --badge-vulnerable-border: rgba(239, 68, 68, 0.3);
+      --badge-vulnerable-text: #fca5a5;
+      
+      --badge-corregido-bg: rgba(16, 185, 129, 0.12);
+      --badge-corregido-border: rgba(16, 185, 129, 0.3);
+      --badge-corregido-text: #6ee7b7;
+
+      --focus-ring: 2px solid #06b6d4;
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --transition-fast: 0.2s ease;
+    }
+
+    /* Reset básico */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Accesibilidad: indicador de foco visible */
+    a:focus-visible,
+    button:focus-visible {
+      outline: var(--focus-ring);
+      outline-offset: 4px;
+    }
+
+    /* Respetar preferencia de reducción de movimiento */
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ==========================================================================
+       ESTRUCTURA Y CONTENEDORES
+       ========================================================================== */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    main {
+      flex: 1;
+      padding-bottom: 64px;
+    }
+
+    section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    section:last-of-type {
+      border-bottom: none;
+    }
+
+    /* ==========================================================================
+       HEADER Y NAVEGACIÓN
+       ========================================================================== */
+    .site-header {
+      background-color: rgba(7, 10, 18, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent-cyan-glow);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-cyan);
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color var(--transition-fast);
+    }
+
+    .nav-link:hover {
+      color: var(--accent-cyan);
+    }
+
+    /* ==========================================================================
+       PORTADA / HERO
+       ========================================================================== */
+    .hero {
+      padding: 64px 0 48px 0;
+    }
+
+    .hero-content {
+      max-width: 800px;
+    }
+
+    .hero-subtitle-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin-bottom: 16px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .hero-subtitle-badge::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: #ffffff;
+    }
+
+    .hero-description {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background-color: var(--accent-cyan);
+      color: #041019;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      transition: background-color var(--transition-fast), transform var(--transition-fast);
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25);
+    }
+
+    .btn-primary:hover {
+      background-color: #22d3ee;
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       TARJETA DE PRESENTACIÓN DESTACADA
+       ========================================================================== */
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .section-description {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .presentation-card {
+      background: linear-gradient(135deg, var(--bg-card) 0%, #111a2e 100%);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color var(--transition-fast);
+    }
+
+    .presentation-card:hover {
+      border-color: var(--accent-cyan);
+    }
+
+    .presentation-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .presentation-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--accent-cyan-glow);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-cyan);
+      flex-shrink: 0;
+    }
+
+    .presentation-card-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .presentation-body {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .presentation-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .meta-tag {
+      background-color: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ==========================================================================
+       GRUPOS DE DEMOSTRACIONES (GRID DE TARJETAS)
+       ========================================================================== */
+    .demo-group {
+      margin-bottom: 40px;
+    }
+
+    .demo-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .group-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    /* Tarjeta de enlace individual */
+    .card-link {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+      position: relative;
+    }
+
+    .card-link:hover {
+      background-color: var(--bg-card-hover);
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-vulnerable {
+      background-color: var(--badge-vulnerable-bg);
+      border: 1px solid var(--badge-vulnerable-border);
+      color: var(--badge-vulnerable-text);
+    }
+
+    .badge-corregido {
+      background-color: var(--badge-corregido-bg);
+      border: 1px solid var(--badge-corregido-border);
+      color: var(--badge-corregido-text);
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .card-description {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .card-action {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin-top: auto;
+    }
+
+    .card-action svg {
+      transition: transform var(--transition-fast);
+    }
+
+    .card-link:hover .card-action svg {
+      transform: translateX(4px);
+    }
+
+    /* ==========================================================================
+       NOTA INFORMATIVA / DISCLAIMER
+       ========================================================================== */
+    .info-note {
+      background-color: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent-cyan);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-top: 32px;
+    }
+
+    .info-icon {
+      color: var(--accent-cyan);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .info-text {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ==========================================================================
+       PIE DE PÁGINA
+       ========================================================================== */
+    .site-footer {
+      background-color: var(--bg-dark);
+      border-top: 1px solid var(--border-subtle);
+      padding: 32px 0;
+      margin-top: auto;
+    }
+
+    .footer-content {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 0.88rem;
+      color: var(--text-dim);
+    }
+
+    .footer-brand {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       DISEÑO RESPONSIVE
+       ========================================================================== */
+    @media (max-width: 768px) {
+      .header-content {
+        height: auto;
+        padding: 16px 0;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .nav-links {
+        gap: 16px;
+      }
+
+      .hero {
+        padding: 40px 0 32px 0;
+      }
+
+      .presentation-card {
+        padding: 24px;
+      }
+
+      .presentation-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-content {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ENCABEZADO Y NAVEGACIÓN -->
+  <header class="site-header">
+    <div class="container">
+      <div class="header-content">
+        <a href="#portada" class="brand" aria-label="Ciberseguridad aplicada - Inicio">
+          <div class="brand-icon">
+            <!-- SVG Icon: Shield -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <span class="brand-title">Ciberseguridad aplicada</span>
+        </a>
+        
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <span class="brand-tag">WEB SECURITY / LABORATORIO</span>
+          <nav aria-label="Navegación principal">
+            <ul class="nav-links">
+              <li><a href="#presentacion" class="nav-link">Presentación</a></li>
+              <li><a href="#demostraciones" class="nav-link">Demostraciones</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- SECCIÓN PORTADA / HERO -->
+    <section id="portada" class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <div class="hero-subtitle-badge">
+            Exposición, demostración y mitigación
+          </div>
+          <h1 class="hero-title">
+            Vulnerabilidades críticas en la web
+          </h1>
+          <p class="hero-description">
+            Plataforma interactiva del proyecto académico. Este índice reúne la presentación técnica de hallazgos y laboratorios prácticos e interactivos para analizar vectores de ataque y sus correspondientes controles de seguridad.
+          </p>
+          <a href="presentacion.html" class="btn-primary" aria-label="Abrir la presentación interactiva del proyecto">
+            <span>Abrir presentación</span>
+            <!-- SVG Icon: Arrow Right -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN PRESENTACIÓN PRINCIPAL -->
+    <section id="presentacion">
+      <div class="container">
+        <h2 class="section-title">Presentación académica</h2>
+        <p class="section-description"></p>
+        
+        <div class="presentation-card">
+          <div class="presentation-header">
+            <div class="presentation-info">
+              <div class="icon-box">
+                <!-- SVG Icon: Monitor / Presentation -->
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </div>
+              <div>
+                <h3 class="presentation-card-title">Presentación principal</h3>
+                <span style="font-size: 0.85rem; color: var(--accent-cyan);">Archivo: presentacion.html</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="presentation-body">
+            
+          </p>
+
+          <div class="presentation-meta">
+            <span class="meta-tag">A01: Broken Access Control</span>
+            <span class="meta-tag">A03 / A05: Cross-Site Scripting (XSS)</span>
+            <span class="meta-tag">A10 / A01: Server-Side Request Forgery (SSRF)</span>
+          </div>
+
+          <div style="margin-top: 12px;">
+            <a href="presentacion.html" class="btn-primary" style="padding: 10px 20px; font-size: 0.9rem;" aria-label="Abrir archivo de presentación principal">
+              <span>Ver presentación interactiva</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN DE DEMOSTRACIONES -->
+    <section id="demostraciones">
+      <div class="container">
+        <h2 class="section-title">Demostraciones e iteraciones prácticas</h2>
+        <p class="section-description">Acceso a los entornos interactivos para explorar el comportamiento de cada riesgo web y su solución correspondiente.</p>
+
+        <!-- GRUPO 1: BROKEN ACCESS CONTROL -->
+        <div class="demo-group">
+          <div class="group-header">
+            <!-- SVG Icon: Key / Lock -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <h3 class="group-title">Grupo 1: Broken Access Control</h3>
+          </div>
+
+          <div class="demo-grid">
+            <!-- Tarjeta Vulnerable -->
+            <a href="broken-access-control/vulnerable.html" class="card-link" aria-label="Navegar a la versión vulnerable de Broken Access Control">
+              <div>
+                <div class="card-top">
+                  <span class="badge badge-vulnerable">Vulnerable</span>
+                  <!-- SVG Icon: Unlock -->
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--badge-vulnerable-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                  </svg>
+                </div>
+                <h4 class="card-title">Versión vulnerable</h4>
+                <p class="card-description">
+                  
+                </p>
+              </div>
+              <div class="card-action">
+                <span>Ejecutar laboratorio</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </a>
+
+            <!-- Tarjeta Corregida -->
+            <a href="broken-access-control/corregido.html" class="card-link" aria-label="Navegar a la versión corregida de Broken Access Control">
+              <div>
+                <div class="card-top">
+                  <span class="badge badge-corregido">Corregido</span>
+                  <!-- SVG Icon: Check Shield -->
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--badge-corregido-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polyline points="9 12 11 14 15 10"></polyline>
+                  </svg>
+                </div>
+                <h4 class="card-title">Versión corregida</h4>
+                <p class="card-description">
+                  
+                </p>
+              </div>
+              <div class="card-action">
+                <span>Ejecutar laboratorio</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- GRUPO 2: CROSS-SITE SCRIPTING (XSS) -->
+        <div class="demo-group">
+          <div class="group-header">
+            <!-- SVG Icon: Code / Terminal -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <h3 class="group-title">Grupo 2: Cross-Site Scripting (XSS)</h3>
+          </div>
+
+          <div class="demo-grid">
+            <!-- Tarjeta Vulnerable -->
+            <a href="xss/vulnerable.html" class="card-link" aria-label="Navegar a la versión vulnerable de Cross-Site Scripting">
+              <div>
+                <div class="card-top">
+                  <span class="badge badge-vulnerable">Vulnerable</span>
+                  <!-- SVG Icon: Alert Triangle -->
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--badge-vulnerable-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                </div>
+                <h4 class="card-title">Versión vulnerable</h4>
+                <p class="card-description">
+                  
+                </p>
+              </div>
+              <div class="card-action">
+                <span>Ejecutar laboratorio</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </a>
+
+            <!-- Tarjeta Corregida -->
+            <a href="xss/corregido.html" class="card-link" aria-label="Navegar a la versión corregida de Cross-Site Scripting">
+              <div>
+                <div class="card-top">
+                  <span class="badge badge-corregido">Corregido</span>
+                  <!-- SVG Icon: Shield Check -->
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--badge-corregido-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <path d="m9 12 2 2 4-4"></path>
+                  </svg>
+                </div>
+                <h4 class="card-title">Versión corregida</h4>
+                <p class="card-description">
+                </p>
+              </div>
+              <div class="card-action">
+                <span>Ejecutar laboratorio</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- GRUPO 3: SERVER-SIDE REQUEST FORGERY (SSRF) -->
+        <div class="demo-group">
+          <div class="group-header">
+            <!-- SVG Icon: Server / Network -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+            <h3 class="group-title">Grupo 3: Server-Side Request Forgery (SSRF)</h3>
+          </div>
+
+          <div class="demo-grid">
+            <!-- Tarjeta Simulación Vulnerable -->
+            <a href="ssrf/vulnerable.html" class="card-link" aria-label="Navegar a la simulación vulnerable de SSRF">
+              <div>
+                <div class="card-top">
+                  <span class="badge badge-vulnerable">Simulación vulnerable</span>
+                  <!-- SVG Icon: Globe Alert -->
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--badge-vulnerable-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                </div>
+                <h4 class="card-title">Simulación vulnerable</h4>
+                <p class="card-description">
+                </p>
+              </div>
+              <div class="card-action">
+                <span>Ejecutar laboratorio</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </a>
+
+            <!-- Tarjeta Simulación Corregida -->
+            <a href="ssrf/corregido.html" class="card-link" aria-label="Navegar a la simulación corregida de SSRF">
+              <div>
+                <div class="card-top">
+                  <span class="badge badge-corregido">Simulación corregida</span>
+                  <!-- SVG Icon: Network Lock -->
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--badge-corregido-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                    <path d="M7 14v-2a3 3 0 0 1 6 0v2"></path>
+                    <rect x="5" y="14" width="10" height="8" rx="1"></rect>
+                  </svg>
+                </div>
+                <h4 class="card-title">Simulación corregida</h4>
+                <p class="card-description">
+                </p>
+              </div>
+              <div class="card-action">
+                <span>Ejecutar laboratorio</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- NOTA INFORMATIVA EDUCATIVA -->
+        <aside class="info-note" aria-label="Nota técnica de seguridad">
+          <div class="info-icon">
+            <!-- SVG Icon: Info Circle -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </div>
+          <div class="info-text">
+            Las demostraciones son ejemplos educativos ejecutados en el navegador. Las simulaciones de Broken Access Control y SSRF no representan una autorización real del lado del servidor ni realizan peticiones SSRF reales.
+          </div>
+        </aside>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- PIE DE PÁGINA -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <span class="footer-brand">Ciberseguridad aplicada</span>
+        <span>Exposición académica · Vulnerabilidades web</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

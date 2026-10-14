@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciberseguridad aplicada | Vulnerabilidades críticas en la web</title>
+<style>
+  :root {
+    --bg: #080d18;
+    --panel: #101a2b;
+    --panel-2: #132238;
+    --text: #edf4ff;
+    --muted: #a8b8ce;
+    --accent: #54d6ff;
+    --accent-2: #7c8cff;
+    --line: rgba(130, 177, 220, .22);
+    --danger: #ff7b8a;
+    --good: #6ce5bd;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; }
+  body {
+    background:
+      radial-gradient(ellipse at 80% 15%, rgba(52, 105, 180, .18), transparent 35%),
+      radial-gradient(ellipse at 12% 85%, rgba(44, 201, 224, .10), transparent 32%),
+      var(--bg);
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+  .deck { height: 100%; display: flex; flex-direction: column; }
+  .topbar {
+    height: 58px; flex: 0 0 58px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 clamp(18px, 4vw, 56px);
+    border-bottom: 1px solid var(--line); background: rgba(8, 13, 24, .72);
+  }
+  .brand { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  .brand-mark { width: 24px; height: 24px; border: 1px solid var(--accent); border-radius: 7px; position: relative; }
+  .brand-mark:before, .brand-mark:after { content: ""; position: absolute; background: var(--accent); }
+  .brand-mark:before { width: 10px; height: 1px; left: 6px; top: 7px; box-shadow: 0 5px 0 var(--accent); }
+  .brand-mark:after { width: 1px; height: 10px; top: 6px; left: 11px; }
+  .top-right { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); letter-spacing: .08em; }
+  .stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: clamp(18px, 4vh, 42px) clamp(18px, 5vw, 72px); }
+  .slide {
+    width: min(1120px, 100%); height: 100%; max-height: 720px; display: none;
+    animation: appear .28s ease both; overflow: auto; padding: clamp(8px, 1vw, 16px) 0;
+  }
+  .slide.active { display: flex; flex-direction: column; justify-content: center; }
+  @keyframes appear { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+  .eyebrow { color: var(--accent); font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .18em; text-transform: uppercase; margin-bottom: 18px; }
+  h1, h2, h3, p { margin-top: 0; }
+  h1 { font-size: clamp(2.7rem, 6.5vw, 5.8rem); line-height: .98; letter-spacing: -.055em; max-width: 920px; margin-bottom: 24px; }
+  h2 { font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -.045em; line-height: 1.05; margin-bottom: 24px; }
+  h3 { font-size: clamp(1rem, 1.7vw, 1.28rem); margin-bottom: 10px; }
+  p { color: var(--muted); font-size: clamp(.96rem, 1.45vw, 1.12rem); line-height: 1.65; max-width: 850px; margin-bottom: 14px; }
+  .subtitle { font-size: clamp(1.15rem, 2.2vw, 1.65rem); color: #c4d6eb; max-width: 740px; line-height: 1.5; }
+  .team { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: .92rem; }
+  .accent { color: var(--accent); }
+  .title-rule { width: 92px; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); margin: 28px 0; border-radius: 4px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 10px; }
+  .card {
+    background: linear-gradient(145deg, rgba(19, 34, 56, .9), rgba(13, 23, 39, .88));
+    border: 1px solid var(--line); border-radius: 16px; padding: clamp(18px, 2.3vw, 28px);
+    position: relative; min-width: 0;
+  }
+  .card:before { content: ""; position: absolute; left: 0; top: 20px; bottom: 20px; width: 2px; background: var(--accent); opacity: .8; border-radius: 2px; }
+  .card p { font-size: clamp(.9rem, 1.2vw, 1rem); margin-bottom: 0; }
+  .tag { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 14px; }
+  .tag:before { content: ""; width: 6px; height: 6px; background: currentColor; border-radius: 50%; }
+  .risk { border-color: rgba(255,123,138,.32); }
+  .risk:before { background: var(--danger); }
+  .risk .tag { color: var(--danger); }
+  .owasp { margin-top: 16px; border: 1px solid rgba(84,214,255,.24); border-radius: 12px; padding: 14px 18px; background: rgba(84,214,255,.055); color: #c5d9ed; font-size: .94rem; line-height: 1.5; }
+  .owasp strong { color: var(--accent); }
+  .risk-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+  .risk-item { padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: rgba(16,26,43,.72); }
+  .risk-item h3 { color: var(--danger); }
+  .risk-item p { font-size: .93rem; margin: 0; }
+  .number { color: var(--accent); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; margin-bottom: 16px; display: block; }
+  .summary-layout { display: grid; grid-template-columns: .9fr 1.1fr; gap: 22px; align-items: stretch; }
+  .summary-big { padding: clamp(22px, 3vw, 38px); background: linear-gradient(145deg, rgba(24, 53, 77, .8), rgba(15, 25, 42, .8)); border: 1px solid var(--line); border-radius: 16px; }
+  .summary-big p { margin-bottom: 0; }
+  .takeaways { display: grid; gap: 12px; }
+  .takeaway { border-bottom: 1px solid var(--line); padding: 10px 0 14px; }
+  .takeaway:last-child { border-bottom: 0; }
+  .takeaway h3 { color: var(--accent); }
+  .takeaway p { font-size: .98rem; margin-bottom: 0; }
+  .closing { text-align: center; align-items: center; }
+  .closing h2 { font-size: clamp(2.7rem, 7vw, 5.6rem); }
+  .closing .title-rule { margin: 20px auto; }
+  .closing p { max-width: 560px; }
+  .footer { height: 66px; flex: 0 0 66px; display: flex; align-items: center; gap: 18px; padding: 0 clamp(18px, 4vw, 56px); border-top: 1px solid var(--line); background: rgba(8,13,24,.72); }
+  .progress-track { height: 3px; flex: 1; background: #1d2a3d; border-radius: 4px; overflow: hidden; }
+  .progress { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .25s ease; }
+  .counter { color: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; min-width: 52px; }
+  .controls { display: flex; gap: 8px; }
+  button { border: 1px solid var(--line); background: #101a2b; color: var(--text); border-radius: 9px; min-width: 40px; height: 38px; cursor: pointer; font-size: 18px; transition: border-color .15s, background .15s; }
+  button:hover { border-color: var(--accent); background: #172940; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  button:disabled { opacity: .35; cursor: not-allowed; }
+  .hint { color: #71849e; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  @media (max-width: 720px) {
+    .topbar { height: 50px; flex-basis: 50px; }
+    .top-right { display: none; }
+    .stage { padding: 16px 20px; }
+    .slide { max-height: none; }
+    .grid, .summary-layout { grid-template-columns: 1fr; }
+    .risk-list { grid-template-columns: 1fr; }
+    .card { padding: 18px 20px; }
+    .footer { height: 58px; flex-basis: 58px; gap: 10px; }
+    .hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="deck">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Ciberseguridad aplicada</span></div>
+    <div class="top-right">WEB SECURITY / PRESENTACIÓN</div>
+  </header>
+
+  <main class="stage" aria-live="polite">
+    <section class="slide active" aria-label="Diapositiva 1">
+      <div class="eyebrow">01 / Introducción</div>
+      <h1>Ciberseguridad <span class="accent">aplicada</span></h1>
+      <div class="title-rule"></div>
+      <p class="subtitle">Vulnerabilidades críticas en la web: exposición y mitigación</p>
+      <div class="team">Héctor Javier Alonso Zaragoza 252039 <br> Alejandro Rodríguez Lugo 251622</div>
+    </section>
+
+    <section class="slide" aria-label="Diapositiva 2">
+      <div class="eyebrow">02 / Propósito</div>
+      <h2>Objetivo</h2>
+      <p class="subtitle">Analizar, demostrar y mitigar tres de las vulnerabilidades más críticas en el desarrollo de aplicaciones web y de software, aplicando los estándares de la industria.</p>
+      <div class="title-rule"></div>
+    </section>
+
+    <section class="slide" aria-label="Diapositiva 3">
+      <div class="eyebrow">03 / Vulnerabilidad 01</div>
+      <h2>Broken Access Control</h2>
+      <div class="grid">
+        <article class="card">
+          <div class="tag">¿Qué es?</div>
+          <p>Ocurre cuando un sistema no verifica correctamente los permisos de cada usuario antes de permitirle acceder a información o funciones.</p>
+        </article>
+        <article class="card risk">
+          <div class="tag">Riesgo</div>
+          <p>Un atacante puede consultar datos privados, modificar información o entrar a funciones restringidas. Por ejemplo, cambiar el identificador de una URL para ver la cuenta de otra persona.</p>
+        </article>
+      </div>
+      <div class="owasp"><strong>OWASP:</strong> ocupa el puesto número uno del OWASP Top 10, edición 2025.</div>
+    </section>
+
+    <section class="slide" aria-label="Diapositiva 4">
+      <div class="eyebrow">04 / Vulnerabilidad 02</div>
+      <h2>Cross-Site Scripting <span class="accent">(XSS)</span></h2>
+      <div class="grid">
+        <article class="card">
+          <div class="tag">¿Cómo ocurre?</div>
+          <p>La aplicación inserta datos controlados por el usuario en una página sin validarlos o escaparlos adecuadamente. El navegador puede interpretar esos datos como JavaScript y ejecutarlos.</p>
+        </article>
+        <article class="card risk">
+          <div class="tag">Riesgo</div>
+          <p>Puede facilitar la distribución de malware, el robo de credenciales, cookies y tokens de sesión, el secuestro de cuentas y la suplantación de identidad.</p>
+        </article>
+      </div>
+      <div class="owasp"><strong>OWASP:</strong> en Top 10 2021, XSS dejó de aparecer como categoría independiente y se incorporó a <strong>A03:2021 – Injection</strong>, ya que es una forma de inyección de código. CWE-79 forma parte de esa categoría. Actualmente el Top 10 señala A05:2025 – Injection.</div>
+    </section>
+
+    <section class="slide" aria-label="Diapositiva 5">
+      <div class="eyebrow">05 / Vulnerabilidad 03</div>
+      <h2>Server-Side Request Forgery <span class="accent">(SSRF)</span></h2>
+      <p>Permite que un atacante obligue a una aplicación web a enviar peticiones HTTP no autorizadas hacia recursos internos o externos.</p>
+      <div class="risk-list">
+        <article class="risk-item">
+          <span class="number">RIESGO / 01</span>
+          <h3>Ejecución remota de comandos</h3>
+          <p>En ciertos casos, la interacción con otros servicios puede permitir escalar hasta ejecutar código arbitrario en el servidor.</p>
+        </article>
+        <article class="risk-item">
+          <span class="number">RIESGO / 02</span>
+          <h3>Denegación de servicio</h3>
+          <p>El tráfico generado desde el servidor vulnerable puede saturar servicios internos o externos e interrumpir su disponibilidad.</p>
+        </article>
+        <article class="risk-item">
+          <span class="number">RIESGO / 03</span>
+          <h3>Escaneo de red interna</h3>
+          <p>Puede ayudar a identificar puertos abiertos y descubrir servicios internos que no son accesibles desde el exterior.</p>
+        </article>
+      </div>
+      <div class="owasp"><strong>OWASP:</strong> SSRF aparece en A10:2021. Según la información proporcionada, en OWASP Top 10 2025 dejó de ser una categoría independiente y se incorporó a A01:2025 – Pérdida de Control de Acceso.</div>
+    </section>
+
+    <section class="slide" aria-label="Diapositiva 6">
+      <div class="eyebrow">06 / Resumen y relevancia</div>
+      <h2>Prevenir es parte del diseño</h2>
+      <div class="summary-layout">
+        <div class="summary-big">
+          <div class="tag">Resumen</div>
+          <p>El control de acceso deficiente, XSS y SSRF pueden exponer información, comprometer cuentas, facilitar el acceso a servicios internos y afectar la disponibilidad de una aplicación.</p>
+        </div>
+        <div class="takeaways">
+          <div class="takeaway">
+            <h3>Mitigar desde el desarrollo</h3>
+            <p>Identificar y corregir estas vulnerabilidades reduce las oportunidades de abuso antes de que afecten a los usuarios.</p>
+          </div>
+          <div class="takeaway">
+            <h3>Proteger datos y servicios</h3>
+            <p>Los permisos adecuados y el manejo seguro de los datos y las peticiones ayudan a evitar accesos indebidos y comportamientos inesperados.</p>
+          </div>
+          <div class="takeaway">
+            <h3>Adoptar un diseño seguro</h3>
+            <p>La seguridad debe considerarse durante el diseño y el desarrollo, no únicamente al final, para construir aplicaciones más confiables.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide closing" aria-label="Diapositiva 7">
+      <div class="eyebrow">07 / Cierre</div>
+      <h2>Gracias por<br><span class="accent">su atención.</span></h2>
+      <div class="title-rule"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="counter" id="counter">01 / 07</div>
+    <div class="progress-track" aria-label="Progreso de la presentación"><div class="progress" id="progress"></div></div>
+    <div class="hint">← → PARA NAVEGAR</div>
+    <div class="controls">
+      <button id="prev" type="button" aria-label="Diapositiva anterior" title="Anterior (←)">←</button>
+      <button id="next" type="button" aria-label="Diapositiva siguiente" title="Siguiente (→)">→</button>
+    </div>
+  </footer>
+</div>
+<script>
+(() => {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  let current = 0;
+
+  function show(index) {
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides.forEach((slide, i) => {
+      slide.classList.toggle('active', i === current);
+      slide.setAttribute('aria-hidden', i === current ? 'false' : 'true');
+    });
+    counter.textContent = `${String(current + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+    progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+    prev.disabled = current === 0;
+    next.disabled = current === slides.length - 1;
+  }
+  prev.addEventListener('click', () => show(current - 1));
+  next.addEventListener('click', () => show(current + 1));
+  document.addEventListener('keydown', (event) => {
+    if (['ArrowRight', 'PageDown', ' '].includes(event.key)) {
+      event.preventDefault(); show(current + 1);
+    } else if (['ArrowLeft', 'PageUp'].includes(event.key)) {
+      event.preventDefault(); show(current - 1);
+    } else if (event.key === 'Home') {
+      show(0);
+    } else if (event.key === 'End') {
+      show(slides.length - 1);
+    }
+  });
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+  document.addEventListener('touchend', (e) => {
+    const delta = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(delta) > 65) show(current + (delta < 0 ? 1 : -1));
+  }, {passive: true});
+  show(0);
+})();
+</script>
+</body>
+</html>

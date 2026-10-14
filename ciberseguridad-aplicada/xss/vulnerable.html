@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Libro de visitas</h2>
+
+<input id="mensaje">
+<button onclick="publicar()">Publicar</button>
+
+<hr>
+
+<div id="comentarios"></div>
+
+<script>
+
+function publicar() {
+
+    const mensaje =
+        document.getElementById("mensaje").value;
+
+    document.getElementById("comentarios").innerHTML +=
+        "<p>" + mensaje + "</p>";
+}
+
+</script>
+
+</body>
+</html>

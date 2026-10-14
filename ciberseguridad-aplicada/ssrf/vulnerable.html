@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de SSRF y su mitigación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF1F4; --panel:#fff; --ink:#14213D; --muted:#5B677A; --line:#CBD3DE; --code:#F6F8FA;
+  --bad:#B93A0B; --bad-bg:#FDEBE3; --good:#0F766E; --good-bg:#DFF3F0; --warn:#8A6100; --warn-bg:#FFF4D6;
+  --sans:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.55 var(--sans)}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 20px 48px}
+h1{font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.1;margin:0 0 10px;letter-spacing:-.01em}
+.lead{max-width:68ch;color:var(--muted);margin:0 0 26px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+.ctl label{font-weight:700;display:block;margin-bottom:6px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{flex:1 1 320px;font:15px var(--mono);padding:11px 12px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+button{font:inherit;cursor:pointer;border-radius:8px}
+.go{background:var(--ink);color:#fff;border:0;padding:11px 20px;font-weight:700}
+.go:hover{background:#22345f}
+:focus-visible{outline:3px solid #3B82F6;outline-offset:2px}
+.presets{margin-top:16px;display:grid;gap:10px}
+.presets b{font-size:.95rem;margin-right:6px}
+.chip{font:13.5px var(--mono);padding:5px 10px;border:1.5px solid var(--line);background:#fff;color:var(--ink)}
+.chip:hover{background:var(--code)}
+.chip.atk{border-color:#E7B7A3;color:var(--bad)}
+.chip.atk:hover{background:var(--bad-bg)}
+.opt{margin-top:14px;font-size:.95rem;color:var(--muted);display:flex;gap:8px;align-items:center}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:22px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+.pnl{border-top-width:6px}
+.pnl.v{border-top-color:var(--bad)} .pnl.f{border-top-color:var(--good)}
+.pnl h2{margin:0;font-size:1.35rem}
+.pnl .sub{margin:2px 0 14px;color:var(--muted);font-size:.95rem}
+.v h2{color:var(--bad)} .f h2{color:var(--good)}
+.code{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:10px 0;font:13px/1.6 var(--mono);overflow-x:auto}
+.code div{padding:0 12px;white-space:pre;border-left:4px solid transparent;min-height:1.6em}
+.code div.on{background:#FFF1B8;border-left-color:#E0A800}
+.zones{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.z{font-size:.85rem;padding:4px 10px;border-radius:99px;border:1.5px dashed var(--line);color:var(--muted)}
+.z.ok{border:1.5px solid var(--good);background:var(--good-bg);color:var(--good);font-weight:700}
+.z.no{border:1.5px solid var(--bad);background:var(--bad-bg);color:var(--bad);font-weight:700}
+ol.st{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+ol.st li{padding:8px 12px;border-radius:8px;font-size:.95rem;background:var(--code);border-left:5px solid var(--line)}
+ol.st li.ok{border-left-color:var(--good);background:var(--good-bg)}
+ol.st li.bad{border-left-color:var(--bad);background:var(--bad-bg)}
+ol.st li.warn{border-left-color:#E0A800;background:var(--warn-bg)}
+.out{margin-top:14px}
+.hd{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:.9rem;font-weight:700}
+.pill{font:700 12.5px var(--mono);padding:3px 9px;border-radius:6px;color:#fff}
+.pill.s2{background:var(--good)} .pill.s4,.pill.s5{background:var(--bad)} .pill.sw{background:var(--warn)}
+pre{margin:0;font:13px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;background:#fff;border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px}
+.ver{margin-top:12px;padding:10px 12px;border-radius:8px;font-weight:700;font-size:.97rem}
+.ver.bad{background:var(--bad-bg);color:var(--bad)} .ver.ok{background:var(--good-bg);color:var(--good)} .ver.warn{background:var(--warn-bg);color:var(--warn)}
+.al{margin:6px 0 0;font-size:.9rem;color:var(--muted)}
+.al .chip{margin:4px 4px 0 0}
+.foot{margin-top:26px;color:var(--muted);font-size:.9rem;max-width:80ch}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>SSRF: cuando el servidor pide lo que tú le dices</h1>
+  <p class="lead">En un ataque de Server-Side Request Forgery, el atacante hace que el servidor visite una URL por él. El servidor sí tiene acceso a la red interna; el atacante no. Escribe una URL o elige una de abajo y compara qué hace cada versión del código.</p>
+
+  <section class="card ctl" aria-label="Petición">
+    <label for="url">Parámetro <code>url</code> que envía el usuario</label>
+    <form class="row" id="f">
+      <input type="text" id="url" value="https://example.com/data.json" autocomplete="off" spellcheck="false">
+      <button class="go" type="submit">Enviar a los dos servidores</button>
+    </form>
+    <div class="presets" id="presets"></div>
+    <label class="opt"><input type="checkbox" id="caida"> Simular que los servidores externos legítimos están caídos</label>
+  </section>
+
+  <div class="cols">
+    <section class="card pnl v" aria-labelledby="tv">
+      <h2 id="tv">Versión vulnerable</h2>
+      <p class="sub">Usa la URL tal cual llega.</p>
+      <div class="code" id="cod-v"></div>
+      <div class="zones" aria-label="Destino alcanzado">
+        <span class="z z-v" id="z-v-publica">Internet público</span>
+        <span class="z z-v" id="z-v-interna">Red interna</span>
+        <span class="z z-v" id="z-v-maliciosa">Servidor del atacante</span>
+      </div>
+      <ol class="st" id="st-v" aria-live="polite"></ol>
+      <div class="out" id="out-v" hidden><div class="hd"><span class="pill" id="pill-v"></span>Respuesta al usuario</div><pre id="body-v"></pre></div>
+      <div class="ver" id="ver-v" hidden></div>
+    </section>
+
+    <section class="card pnl f" aria-labelledby="tf">
+      <h2 id="tf">Versión corregida</h2>
+      <p class="sub">Solo acepta URLs de una lista permitida y escapa la salida.</p>
+      <div class="code" id="cod-f"></div>
+      <p class="al">Lista permitida (clic para probar):<br><span id="allow"></span></p>
+      <div class="zones" aria-label="Destino alcanzado">
+        <span class="z z-f" id="z-f-publica">Internet público</span>
+        <span class="z z-f" id="z-f-interna">Red interna</span>
+        <span class="z z-f" id="z-f-maliciosa">Servidor del atacante</span>
+      </div>
+      <ol class="st" id="st-f" aria-live="polite"></ol>
+      <div class="out" id="out-f" hidden><div class="hd"><span class="pill" id="pill-f"></span>Respuesta al usuario</div><pre id="body-f"></pre></div>
+      <div class="ver" id="ver-f" hidden></div>
+    </section>
+  </div>
+
+  <p class="foot">Todo es una simulación en tu navegador: no se envía ninguna petición real y las credenciales de ejemplo son falsas. La lista permitida usa coincidencia exacta; por eso un dominio parecido como <code>example.com.evil.com</code> también se bloquea.</p>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const PERMITIDAS = ['https://example.com/data.json', 'https://api.example.com/info'];
+
+// "Internet" simulado
+const RED = {
+  'https://example.com/data.json': {z:'publica', body:'{"mensaje":"Datos públicos","version":1}'},
+  'https://api.example.com/info': {z:'publica', body:'{"nombre":"<img src=x onerror=alert(1)>","rol":"invitado"}'},
+  'http://localhost/admin': {z:'interna', body:'Panel de administración\nusuario: admin\ncontraseña: S3cr3t0!'},
+  'http://169.254.169.254/latest/meta-data/iam/security-credentials/': {z:'interna', body:'{"AccessKeyId":"AKIAEJEMPLO123","SecretAccessKey":"clave-falsa-solo-para-la-demo","Token":"token-falso"}'},
+  'http://192.168.1.10/impresora/config': {z:'interna', body:'Impresora HR-02\nwifi_clave: oficina2024\nadmin_pin: 0000'},
+  'https://example.com.evil.com/data.json': {z:'maliciosa', body:'{"mensaje":"Datos falsos del atacante"}'}
+};
+
+const PRESETS = [
+  ['Peticiones normales', 'chip', [['data.json', PERMITIDAS[0]], ['info', PERMITIDAS[1]]]],
+  ['Ataques', 'chip atk', [
+    ['panel admin interno', 'http://localhost/admin'],
+    ['credenciales de la nube', 'http://169.254.169.254/latest/meta-data/iam/security-credentials/'],
+    ['impresora de la oficina', 'http://192.168.1.10/impresora/config'],
+    ['dominio parecido', 'https://example.com.evil.com/data.json']]]
+];
+
+const CODE_V = [
+  [0,'# Entrada controlada por el usuario'],
+  [1,"$url = $_GET['url'];"],
+  [0,''],
+  [0,'# Descarga el contenido de la URL recibida'],
+  [2,'$response = file_get_contents($url);'],
+  [0,''],
+  [3,'echo $response;']
+];
+const CODE_F = [
+  [0,'# URLs (o dominios) permitidos'],
+  [0,'$allowed_urls = ['],
+  [0,"  'https://example.com/data.json',"],
+  [0,"  'https://api.example.com/info',"],
+  [0,'];'],
+  [1,"$url = $_GET['url'] ?? '';"],
+  [2,'if (!in_array($url, $allowed_urls)) {'],
+  [2,'  http_response_code(400);'],
+  [2,'  echo "Invalid or unauthorized URL.";'],
+  [2,'  exit;'],
+  [2,'}'],
+  [3,'$response = @file_get_contents($url);'],
+  [3,'if ($response === false) {'],
+  [3,'  http_response_code(500);'],
+  [3,'  echo "Failed to fetch content."; exit;'],
+  [3,'}'],
+  [4,'echo htmlspecialchars($response);']
+];
+
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = () => new Promise(r => setTimeout(r, fast ? 0 : 450));
+let runId = 0;
+
+function drawCode(k, lines){
+  const box = $('cod-' + k);
+  lines.forEach(([s, t]) => {
+    const d = document.createElement('div');
+    d.textContent = t;
+    if (s) d.dataset.s = s;
+    box.appendChild(d);
+  });
+}
+
+function reset(k){
+  $('st-' + k).innerHTML = '';
+  $('out-' + k).hidden = true;
+  $('ver-' + k).hidden = true;
+  document.querySelectorAll('#cod-' + k + ' .on').forEach(e => e.classList.remove('on'));
+  document.querySelectorAll('.z-' + k).forEach(e => e.className = 'z z-' + k);
+}
+function step(k, n, cls, txt){
+  const li = document.createElement('li');
+  li.className = cls; li.textContent = txt;
+  $('st-' + k).appendChild(li);
+  document.querySelectorAll('#cod-' + k + ' [data-s]').forEach(e => e.classList.toggle('on', +e.dataset.s === n));
+}
+function zone(k, z, cls){ $('z-' + k + '-' + z).classList.add(cls); }
+function respond(k, code, body){
+  const cls = code === 200 ? 's2' : code >= 500 ? 's5' : 's4';
+  $('pill-' + k).className = 'pill ' + cls;
+  $('pill-' + k).textContent = 'HTTP ' + code;
+  $('body-' + k).textContent = body;
+  $('out-' + k).hidden = false;
+}
+function verdict(k, cls, txt){
+  const v = $('ver-' + k); v.className = 'ver ' + cls; v.textContent = txt; v.hidden = false;
+}
+// Petición simulada: devuelve null si no hay conexión
+function pedir(url, caida){
+  const r = RED[url];
+  if (!r || (caida && r.z === 'publica')) return null;
+  return r;
+}
+
+async function runV(url, caida, id){
+  reset('v');
+  step('v', 1, 'warn', 'Recibe url = "' + url + '" y no la revisa.');
+  await sleep(); if (id !== runId) return;
+  const r = pedir(url, caida);
+  const destino = {publica:'Internet público', interna:'la red interna', maliciosa:'un servidor del atacante'};
+  if (!r){
+    step('v', 2, 'warn', 'Intenta conectarse a ese destino y falla.');
+    await sleep(); if (id !== runId) return;
+    step('v', 3, 'warn', 'Muestra el error y responde.');
+    respond('v', 200, 'Warning: file_get_contents(' + url + '): failed to open stream');
+    verdict('v', 'warn', 'No hubo conexión, pero el servidor intentó la petición igualmente: cualquier destino es válido.');
+    return;
+  }
+  step('v', 2, r.z === 'publica' ? 'ok' : 'bad', 'file_get_contents() llega a ' + destino[r.z] + '.');
+  zone('v', r.z, r.z === 'publica' ? 'ok' : 'no');
+  await sleep(); if (id !== runId) return;
+  step('v', 3, 'bad', 'Devuelve el contenido sin filtrar ni escapar.');
+  respond('v', 200, r.body);
+  if (r.z === 'interna') verdict('v', 'bad', 'SSRF: el servidor pidió un recurso interno y te entregó su contenido. Desde fuera no podrías llegar a él.');
+  else if (r.z === 'maliciosa') verdict('v', 'bad', 'El servidor confió en un dominio que imita al legítimo y devolvió datos del atacante.');
+  else if (/[<>]/.test(r.body)) verdict('v', 'bad', 'La salida trae etiquetas HTML sin escapar: un navegador podría ejecutarlas (XSS).');
+  else verdict('v', 'warn', 'Funciona con URLs legítimas, pero acepta cualquiera. Ese es el problema.');
+}
+
+async function runF(url, caida, id){
+  reset('f');
+  step('f', 1, 'ok', 'Recibe url = "' + url + '" (vacía si falta).');
+  await sleep(); if (id !== runId) return;
+  if (!PERMITIDAS.includes(url)){
+    step('f', 2, 'bad', 'in_array() no la encuentra en la lista permitida: se detiene aquí.');
+    respond('f', 400, 'Invalid or unauthorized URL.');
+    verdict('f', 'ok', 'Bloqueado antes de hacer ninguna petición: no se tocó ni Internet ni la red interna.');
+    return;
+  }
+  step('f', 2, 'ok', 'La URL está en la lista permitida.');
+  await sleep(); if (id !== runId) return;
+  const r = pedir(url, caida);
+  if (!r){
+    step('f', 3, 'warn', 'La petición falla: responde 500 sin detalles internos.');
+    respond('f', 500, 'Failed to fetch content.');
+    verdict('f', 'warn', 'Error controlado: el mensaje no revela nada del servidor.');
+    return;
+  }
+  step('f', 3, 'ok', 'Descarga el contenido solo del destino permitido.');
+  zone('f', r.z, 'ok');
+  await sleep(); if (id !== runId) return;
+  step('f', 4, 'ok', 'htmlspecialchars() convierte < y > en texto inofensivo.');
+  respond('f', 200, esc(r.body));
+  verdict('f', 'ok', /[<>]/.test(r.body) ? 'Petición permitida y salida escapada: las etiquetas se ven como texto, no se ejecutan.' : 'Petición permitida: el destino estaba en la lista.');
+}
+
+function ejecutar(){
+  const url = $('url').value.trim();
+  const caida = $('caida').checked;
+  const id = ++runId;
+  runV(url, caida, id); runF(url, caida, id);
+}
+function usar(u, enviar){ $('url').value = u; if (enviar) ejecutar(); }
+
+// Interfaz
+drawCode('v', CODE_V); drawCode('f', CODE_F);
+PERMITIDAS.forEach(u => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = u;
+  b.onclick = () => usar(u, true); $('allow').appendChild(b);
+});
+PRESETS.forEach(([titulo, cls, items]) => {
+  const d = document.createElement('div');
+  d.innerHTML = '<b></b>'; d.firstChild.textContent = titulo + ':';
+  items.forEach(([n, u]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = n; b.title = u;
+    b.onclick = () => usar(u, true); d.appendChild(b); d.appendChild(document.createTextNode(' '));
+  });
+  $('presets').appendChild(d);
+});
+$('f').addEventListener('submit', e => { e.preventDefault(); ejecutar(); });
+$('caida').addEventListener('change', ejecutar);
+ejecutar();
+</script>
+</body>
+</html>
